@@ -9,7 +9,7 @@ pygame.mixer.init()
 # Set up display
 WIDTH, HEIGHT = 600, 800
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Ball Drop Simulation with Paddle")
+pygame.display.set_caption("Ball Drop Simulation with Dog Paddle")
 
 # Set up colors
 WHITE = (255, 255, 255)
@@ -19,19 +19,19 @@ GREEN = (0, 255, 0)
 # Load sound effect for the blip
 blip_sound = pygame.mixer.Sound("blip_sound.wav")
 
-# Load the paddle image
+# Load the paddle image (dog)
 paddle_image = pygame.image.load("Butters.png")
 
-# Optional: Resize the paddle image if necessary
-paddle_image = pygame.transform.scale(paddle_image, (200, 200))  # Resize to width 100, height 20
+# Resize the paddle image to 200x200
+paddle_image = pygame.transform.scale(paddle_image, (200, 200))  # Resize to width 200, height 200
 
 # Ball parameters
-BALL_RADIUS = 15  # This needs to be defined before using it to resize the balloon
-GRAVITY = 0.2  # Start with slower gravity
-initial_velocity_factor = 1.5  # Initial velocity for slower movement
+BALL_RADIUS = 15
+initial_gravity = 0.1  # Start with slower gravity
+initial_velocity_factor = 1.0  # Initial velocity for slower movement
 num_balls = 30  # Number of balls
-extra_ball_interval = 6  # Extra ball every 6th drop
-drop_interval = 60  # Delay between drops in frames
+ball_add_interval = 300  # Number of frames between adding balls
+max_gravity = 0.5  # Max gravity increase
 
 # Load the balloon image for the ball
 balloon_image = pygame.image.load("balloon.gif")
@@ -49,39 +49,21 @@ max_misses = 10  # End game after 10 misses
 font = pygame.font.SysFont(None, 36)
 
 def reset_game():
-    global paddle_x, paddle_y, balls, frame_counter, misses, score, GRAVITY, accelerate
+    global paddle_x, paddle_y, balls, frame_counter, misses, score, GRAVITY, accelerate, ball_spawn_timer, gravity_increase_timer
     # Reset paddle position
     paddle_x = WIDTH // 2 - paddle_image.get_width() // 2  # Centered horizontally
-    paddle_y = HEIGHT - 200  # Move the paddle up by 100 units
+    paddle_y = HEIGHT - 50 - 100  # Move the paddle up by 100 units
 
     # Reset ball data
     balls = []
-    for i in range(num_balls):
-        x_position = random.randint(BALL_RADIUS, WIDTH - BALL_RADIUS)
-        y_position = -random.randint(50, 150)  # Start above the screen
-        angle = random.uniform(-30, 30)  # Random angle
-        balls.append({
-            "x": x_position,
-            "y": y_position,
-            "vx": math.sin(math.radians(angle)) * initial_velocity_factor,  # X velocity
-            "vy": 0,  # Start with no Y velocity
-            "active": False  # Balls will activate based on the timer
-        })
-        # Add an extra ball every 6th drop
-        if (i + 1) % extra_ball_interval == 0:
-            balls.append({
-                "x": random.randint(BALL_RADIUS, WIDTH - BALL_RADIUS),
-                "y": -random.randint(50, 150),
-                "vx": math.sin(math.radians(random.uniform(-30, 30))) * initial_velocity_factor,
-                "vy": 0,
-                "active": False
-            })
-
-    # Reset game variables
+    
+    # Initial game variables
     frame_counter = 0
     misses = 0
     score = 0
-    GRAVITY = 0.2  # Reset gravity
+    GRAVITY = initial_gravity  # Start with initial gravity
+    ball_spawn_timer = 0  # Timer for adding balls
+    gravity_increase_timer = 0  # Timer to increase gravity
     accelerate = False
 
 def draw_button(text, x, y, width, height, color, text_color):
@@ -89,8 +71,22 @@ def draw_button(text, x, y, width, height, color, text_color):
     label = font.render(text, True, text_color)
     screen.blit(label, (x + (width - label.get_width()) // 2, y + (height - label.get_height()) // 2))
 
+def add_ball():
+    # Adds a new ball with random position and velocity
+    x_position = random.randint(BALL_RADIUS, WIDTH - BALL_RADIUS)
+    y_position = -random.randint(50, 150)  # Start above the screen
+    angle = random.uniform(-30, 30)  # Random angle
+    ball = {
+        "x": x_position,
+        "y": y_position,
+        "vx": math.sin(math.radians(angle)) * initial_velocity_factor,  # X velocity
+        "vy": 0,  # Start with no Y velocity
+        "active": True  # Ball starts active
+    }
+    balls.append(ball)
+
 def main_game():
-    global paddle_x, paddle_y, frame_counter, misses, score, accelerate, GRAVITY, running
+    global paddle_x, paddle_y, frame_counter, misses, score, accelerate, GRAVITY, running, ball_spawn_timer, gravity_increase_timer
     
     reset_game()
 
@@ -116,11 +112,8 @@ def main_game():
         # Draw the paddle image
         screen.blit(paddle_image, (paddle_x, paddle_y))
 
-        # Drop balls at intervals and update their positions
-        for i, ball in enumerate(balls):
-            if not ball["active"] and frame_counter > i * drop_interval:
-                ball["active"] = True
-
+        # Drop balls and update their positions
+        for ball in balls:
             if ball["active"]:
                 # Apply gravity
                 ball["vy"] += GRAVITY
@@ -143,17 +136,20 @@ def main_game():
 
                 # If ball falls off the screen (miss)
                 if ball["y"] > HEIGHT:
-                    ball["y"] = -random.randint(50, 150)
-                    ball["vx"] = math.sin(math.radians(random.uniform(-30, 30))) * initial_velocity_factor
-                    ball["vy"] = 0
+                    balls.remove(ball)  # Remove the ball once missed
                     misses += 1  # Increment miss counter
 
-                # Accelerate gravity after a few hits
-                if score % 10 == 0 and score != 0 and not accelerate:
-                    GRAVITY += 0.1
-                    accelerate = True  # Prevent further acceleration until new score milestone
-                if score % 10 != 0:
-                    accelerate = False
+        # Add balls over time
+        ball_spawn_timer += 1
+        if ball_spawn_timer > ball_add_interval:
+            add_ball()
+            ball_spawn_timer = 0
+
+        # Gradually increase gravity over time
+        gravity_increase_timer += 1
+        if gravity_increase_timer > 600 and GRAVITY < max_gravity:  # Every 10 seconds (600 frames at 60 FPS)
+            GRAVITY += 0.05  # Increase gravity
+            gravity_increase_timer = 0
 
         # Display score and misses
         score_text = font.render(f"Score: {score}", True, BLACK)
