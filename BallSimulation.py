@@ -14,12 +14,17 @@ pygame.display.set_caption("Ball Drop Simulation with Paddle")
 # Set up colors
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
-BLUE = (0, 0, 255)
 BLACK = (0, 0, 0)
 GREEN = (0, 255, 0)
 
 # Load sound effect for the blip
 blip_sound = pygame.mixer.Sound("blip_sound.wav")
+
+# Load the paddle image
+paddle_image = pygame.image.load("Butters.png")
+
+# Optional: Resize the paddle image if necessary
+paddle_image = pygame.transform.scale(paddle_image, (200, 200))  # Resize to width 100, height 20
 
 # Ball parameters
 BALL_RADIUS = 15
@@ -30,7 +35,6 @@ extra_ball_interval = 6  # Extra ball every 6th drop
 drop_interval = 60  # Delay between drops in frames
 
 # Paddle parameters
-PADDLE_WIDTH, PADDLE_HEIGHT = 100, 20
 paddle_speed = 10
 
 # Game parameters
@@ -41,9 +45,9 @@ font = pygame.font.SysFont(None, 36)
 
 def reset_game():
     global paddle_x, paddle_y, balls, frame_counter, misses, score, GRAVITY, accelerate
-    # Reset paddle
-    paddle_x = WIDTH // 2 - PADDLE_WIDTH // 2
-    paddle_y = HEIGHT - 50
+    # Reset paddle position
+    paddle_x = WIDTH // 2 - paddle_image.get_width() // 2  # Centered horizontally
+    paddle_y = HEIGHT - 200  # Positioned near the bottom of the screen
 
     # Reset ball data
     balls = []
@@ -101,11 +105,11 @@ def main_game():
         keys = pygame.key.get_pressed()
         if keys[pygame.K_LEFT] and paddle_x > 0:
             paddle_x -= paddle_speed
-        if keys[pygame.K_RIGHT] and paddle_x < WIDTH - PADDLE_WIDTH:
+        if keys[pygame.K_RIGHT] and paddle_x < WIDTH - paddle_image.get_width():
             paddle_x += paddle_speed
 
-        # Draw paddle
-        pygame.draw.rect(screen, BLUE, (paddle_x, paddle_y, PADDLE_WIDTH, PADDLE_HEIGHT))
+        # Draw the paddle image
+        screen.blit(paddle_image, (paddle_x, paddle_y))
 
         # Drop balls at intervals and update their positions
         for i, ball in enumerate(balls):
@@ -122,9 +126,9 @@ def main_game():
                 if ball["x"] <= BALL_RADIUS or ball["x"] >= WIDTH - BALL_RADIUS:
                     ball["vx"] = -ball["vx"]
 
-                # Ball bouncing off the paddle
+                # Ball bouncing off the paddle (paddle image's bounding box)
                 if (paddle_y - BALL_RADIUS < ball["y"] < paddle_y and
-                    paddle_x < ball["x"] < paddle_x + PADDLE_WIDTH):
+                    paddle_x < ball["x"] < paddle_x + paddle_image.get_width()):
                     ball["vy"] = -abs(ball["vy"]) * 0.9  # Reverse Y velocity with damping
                     blip_sound.play()  # Play blip sound on paddle hit
                     score += 1  # Increase score
