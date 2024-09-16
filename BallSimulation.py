@@ -8,7 +8,7 @@ pygame.init()
 screen_width = 800
 screen_height = 600
 screen = pygame.display.set_mode((screen_width, screen_height))
-pygame.display.set_caption("Ball Shooting Across Screen")
+pygame.display.set_caption("Ball Bouncing Across Screen")
 
 # Define colors
 WHITE = (255, 255, 255)
@@ -16,9 +16,10 @@ RED = (255, 0, 0)
 
 # Ball settings
 ball_radius = 15
-ball_x = 50  # Start ball on the left side of the screen
-ball_y = screen_height // 2  # Center the ball vertically
-ball_speed = 5
+ball_x = screen_width // 2
+ball_y = screen_height // 2
+ball_speed_x = 5
+ball_speed_y = 5
 
 # Set up the clock for controlling frame rate
 clock = pygame.time.Clock()
@@ -33,11 +34,15 @@ while running:
             sys.exit()
 
     # Update ball position
-    ball_x += ball_speed
+    ball_x += ball_speed_x
+    ball_y += ball_speed_y
 
-    # Check if the ball has gone off the screen
-    if ball_x - ball_radius > screen_width:
-        ball_x = 50  # Reset the ball to the starting position
+    # Check for collisions with the screen edges and bounce
+    if ball_x - ball_radius <= 0 or ball_x + ball_radius >= screen_width:
+        ball_speed_x = -ball_speed_x  # Reverse the horizontal direction
+
+    if ball_y - ball_radius <= 0 or ball_y + ball_radius >= screen_height:
+        ball_speed_y = -ball_speed_y  # Reverse the vertical direction
 
     # Fill the screen with white
     screen.fill(WHITE)
