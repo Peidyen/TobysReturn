@@ -18,7 +18,7 @@ BLACK = (0, 0, 0)
 GREEN = (0, 255, 0)
 
 # Load sound effect for the blip
-blip_sound = pygame.mixer.Sound("blip_sound.wav")
+blip_sound = pygame.mixer.Sound("BalloonPop.wav")
 
 # Load the paddle image (dog)
 paddle_image = pygame.image.load("Butters.png")
