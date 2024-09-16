@@ -1,141 +1,115 @@
 import pygame
-import sys
 import random
+import math
 
-# Initialize Pygame
+# Initialize pygame and sound mixer
 pygame.init()
-pygame.mixer.init()  # Initialize the mixer for sound
+pygame.mixer.init()
 
-# Set up the screen
-screen_width = 800
-screen_height = 600
-screen = pygame.display.set_mode((screen_width, screen_height))
-pygame.display.set_caption("Ball Drop Game")
+# Set up display
+WIDTH, HEIGHT = 600, 800
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Ball Drop Simulation with Paddle")
 
-# Define colors
+# Set up colors
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
-BLACK = (0, 0, 0)
 BLUE = (0, 0, 255)
-GREEN = (0, 255, 0)
 
-# Square (Player) settings
-square_width = 100
-square_height = 20
-square_x = (screen_width - square_width) // 2
-square_y = screen_height - square_height - 10
-square_speed = 7
+# Load sound effect for the blip
+blip_sound = pygame.mixer.Sound("blip_sound.wav")
 
-# Ball settings
-ball_radius = 15
-ball_speed_y = 5
-ball_list = []  # To keep track of multiple balls
+# Ball parameters
+BALL_RADIUS = 15
+GRAVITY = 0.3  # Slower gravity to reduce speed
+num_balls = 30  # Number of balls
+extra_ball_interval = 6  # Extra ball every 6th drop
+drop_interval = 60  # Slower delay between drops in frames
 
-# Game settings
-score = 0
-high_score = 0
-missed_balls = 0
-lives = 3
-font = pygame.font.Font(None, 36)
-game_over = False
+# Paddle parameters
+PADDLE_WIDTH, PADDLE_HEIGHT = 100, 20
+paddle_x = WIDTH // 2 - PADDLE_WIDTH // 2
+paddle_y = HEIGHT - 50
+paddle_speed = 10
 
-# Load sound
-hit_sound = pygame.mixer.Sound('blip_sound.wav')  # Replace with your custom sound if available
+# Set up the ball data
+balls = []
+for i in range(num_balls):
+    x_position = random.randint(BALL_RADIUS, WIDTH - BALL_RADIUS)
+    y_position = -random.randint(50, 150)  # Start above the screen
+    angle = random.uniform(-30, 30)  # Random angle
+    balls.append({
+        "x": x_position,
+        "y": y_position,
+        "vx": math.sin(math.radians(angle)) * 2,  # X velocity reduced for slower movement
+        "vy": 0,  # Start with no Y velocity
+        "active": False  # Balls will activate based on the timer
+    })
+    # Add an extra ball every 6th drop
+    if (i + 1) % extra_ball_interval == 0:
+        balls.append({
+            "x": random.randint(BALL_RADIUS, WIDTH - BALL_RADIUS),
+            "y": -random.randint(50, 150),
+            "vx": math.sin(math.radians(random.uniform(-30, 30))) * 2,
+            "vy": 0,
+            "active": False
+        })
 
-# Set up the clock for controlling frame rate
+# Main loop
 clock = pygame.time.Clock()
-
-# Function to drop a new ball at a random position
-def drop_ball():
-    x = random.randint(ball_radius, screen_width - ball_radius)
-    y = -ball_radius  # Start the ball just above the screen
-    ball_list.append([x, y])
-
-# Function to check for collision between ball and square
-def check_collision(ball_x, ball_y, square_x, square_y, square_width, square_height):
-    if (square_x < ball_x < square_x + square_width) and (square_y < ball_y + ball_radius < square_y + square_height):
-        return True
-    return False
-
-# Timer for dropping balls
-drop_event = pygame.USEREVENT + 1
-pygame.time.set_timer(drop_event, 2000)  # Drop a ball every 2 seconds
-
-# Function to reset the game
-def reset_game():
-    global score, missed_balls, lives, ball_list, game_over
-    score = 0
-    missed_balls = 0
-    lives = 3
-    ball_list = []
-    game_over = False
-
-# Main game loop
+frame_counter = 0
 running = True
 while running:
+    screen.fill(WHITE)
+
     # Handle events
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            pygame.quit()
-            sys.exit()
-        if event.type == drop_event and not game_over:
-            drop_ball()  # Drop a new ball
-        if event.type == pygame.MOUSEBUTTONDOWN and game_over:
-            # Restart the game if game over and player clicks mouse
-            reset_game()
+            running = False
 
-    # Get key presses for square movement
+    # Paddle movement
     keys = pygame.key.get_pressed()
-    if keys[pygame.K_LEFT] and square_x > 0:
-        square_x -= square_speed
-    if keys[pygame.K_RIGHT] and square_x < screen_width - square_width:
-        square_x += square_speed
+    if keys[pygame.K_LEFT] and paddle_x > 0:
+        paddle_x -= paddle_speed
+    if keys[pygame.K_RIGHT] and paddle_x < WIDTH - PADDLE_WIDTH:
+        paddle_x += paddle_speed
 
-    # Update ball positions and check for collisions
-    if not game_over:
-        for ball in ball_list[:]:
-            ball[1] += ball_speed_y  # Move ball down
-            if check_collision(ball[0], ball[1], square_x, square_y, square_width, square_height):
-                ball_list.remove(ball)  # Remove ball if collision happens
-                hit_sound.play()  # Play hit sound when ball hits the square
-                score += 1  # Increment score
-            elif ball[1] > screen_height:
-                ball_list.remove(ball)  # Remove ball if it goes off-screen
-                missed_balls += 1
-                lives -= 1  # Decrease a life
-                if lives <= 0:
-                    game_over = True
-                    if score > high_score:
-                        high_score = score
+    # Draw paddle
+    pygame.draw.rect(screen, BLUE, (paddle_x, paddle_y, PADDLE_WIDTH, PADDLE_HEIGHT))
 
-    # Fill the screen with white
-    screen.fill(WHITE)
+    # Drop balls at intervals and update their positions
+    for i, ball in enumerate(balls):
+        if not ball["active"] and frame_counter > i * drop_interval:
+            ball["active"] = True
 
-    # Draw the square (player)
-    pygame.draw.rect(screen, BLUE, (square_x, square_y, square_width, square_height))
+        if ball["active"]:
+            # Apply gravity
+            ball["vy"] += GRAVITY
+            ball["x"] += ball["vx"]
+            ball["y"] += ball["vy"]
 
-    # Draw the balls
-    for ball in ball_list:
-        pygame.draw.circle(screen, RED, (ball[0], ball[1]), ball_radius)
+            # Ball bouncing off the walls
+            if ball["x"] <= BALL_RADIUS or ball["x"] >= WIDTH - BALL_RADIUS:
+                ball["vx"] = -ball["vx"]
 
-    # Display the score and high score
-    score_text = font.render(f"Score: {score}", True, BLACK)
-    screen.blit(score_text, (10, 10))
+            # Ball bouncing off the paddle
+            if (paddle_y - BALL_RADIUS < ball["y"] < paddle_y and
+                paddle_x < ball["x"] < paddle_x + PADDLE_WIDTH):
+                ball["vy"] = -abs(ball["vy"]) * 0.9  # Reverse Y velocity with damping
+                blip_sound.play()  # Play blip sound on paddle hit
 
-    high_score_text = font.render(f"High Score: {high_score}", True, BLACK)
-    screen.blit(high_score_text, (10, 50))
+            # Draw the ball
+            pygame.draw.circle(screen, RED, (int(ball["x"]), int(ball["y"])), BALL_RADIUS)
 
-    # Display lives
-    lives_text = font.render(f"Lives: {lives}", True, BLACK)
-    screen.blit(lives_text, (screen_width - 120, 10))
+            # Reset the ball if it falls off the screen
+            if ball["y"] > HEIGHT:
+                ball["y"] = -random.randint(50, 150)
+                ball["vx"] = math.sin(math.radians(random.uniform(-30, 30))) * 2
+                ball["vy"] = 0
 
-    # Game Over Screen
-    if game_over:
-        game_over_text = font.render("Game Over! Click to Restart", True, BLACK)
-        screen.blit(game_over_text, (screen_width // 2 - 200, screen_height // 2))
-
-    # Update the screen
+    # Update the display
     pygame.display.flip()
+    frame_counter += 1
+    clock.tick(60)
 
-    # Control frame rate
-    clock.tick(60)  # Run at 60 frames per second
+pygame.quit()
