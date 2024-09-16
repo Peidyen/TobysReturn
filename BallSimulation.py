@@ -13,7 +13,6 @@ pygame.display.set_caption("Ball Drop Simulation with Paddle")
 
 # Set up colors
 WHITE = (255, 255, 255)
-RED = (255, 0, 0)
 BLACK = (0, 0, 0)
 GREEN = (0, 255, 0)
 
@@ -27,12 +26,18 @@ paddle_image = pygame.image.load("Butters.png")
 paddle_image = pygame.transform.scale(paddle_image, (200, 200))  # Resize to width 100, height 20
 
 # Ball parameters
-BALL_RADIUS = 15
+BALL_RADIUS = 15  # This needs to be defined before using it to resize the balloon
 GRAVITY = 0.2  # Start with slower gravity
 initial_velocity_factor = 1.5  # Initial velocity for slower movement
 num_balls = 30  # Number of balls
 extra_ball_interval = 6  # Extra ball every 6th drop
 drop_interval = 60  # Delay between drops in frames
+
+# Load the balloon image for the ball
+balloon_image = pygame.image.load("balloon.gif")
+
+# Optional: Resize the balloon image to match the BALL_RADIUS
+balloon_image = pygame.transform.scale(balloon_image, (BALL_RADIUS * 2, BALL_RADIUS * 2))
 
 # Paddle parameters
 paddle_speed = 10
@@ -47,7 +52,7 @@ def reset_game():
     global paddle_x, paddle_y, balls, frame_counter, misses, score, GRAVITY, accelerate
     # Reset paddle position
     paddle_x = WIDTH // 2 - paddle_image.get_width() // 2  # Centered horizontally
-    paddle_y = HEIGHT - 200  # Positioned near the bottom of the screen
+    paddle_y = HEIGHT - 200  # Move the paddle up by 100 units
 
     # Reset ball data
     balls = []
@@ -133,8 +138,8 @@ def main_game():
                     blip_sound.play()  # Play blip sound on paddle hit
                     score += 1  # Increase score
 
-                # Draw the ball
-                pygame.draw.circle(screen, RED, (int(ball["x"]), int(ball["y"])), BALL_RADIUS)
+                # Draw the balloon image instead of the ball circle
+                screen.blit(balloon_image, (int(ball["x"]) - BALL_RADIUS, int(ball["y"]) - BALL_RADIUS))
 
                 # If ball falls off the screen (miss)
                 if ball["y"] > HEIGHT:
