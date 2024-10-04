@@ -1,5 +1,6 @@
 import pygame
 import random
+import time
 
 # Initialize Pygame
 pygame.init()
@@ -13,7 +14,7 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 
-# Font for displaying the score
+# Font for displaying the score and wave messages
 font = pygame.font.SysFont(None, 36)
 
 # Load Toby Image and resize it
@@ -21,14 +22,21 @@ toby_image = pygame.image.load("toby.gif")
 toby_image = pygame.transform.scale(toby_image, (100, 100))  # Resize Toby
 bark_sound = pygame.mixer.Sound('bark.wav')
 
-# Load and resize the worm image
-worm_image = pygame.image.load("worm.png")
-worm_image = pygame.transform.scale(worm_image, (50, 50))
-
 # Clock for controlling frame rate
 clock = pygame.time.Clock()
 
-# Levels configuration with critters
+# List of creatures from their file names
+creature_images = [
+    "turtle.png", "rabbit.png", "fox.png", "owl.png",
+    "lion.png", "elephant.png", "fish.png", "worm.png",
+    "chick.png", "frog.png"
+]
+
+# Matrix size and tracking
+matrix_size = 100
+creatures_in_matrix = []  # To track creatures added to the matrix
+
+# Define level configuration with critters
 level_critters = [
     {"type": "worm.png", "count": 10},
     {"type": "chick.png", "count": 10},
@@ -42,7 +50,6 @@ level_critters = [
     {"type": "fish.png", "count": 10}
 ]
 
-
 current_level = 1
 wave_count = 0
 critters_spawned = 0
@@ -54,17 +61,38 @@ def load_and_resize_image(image_file, size):
     image = pygame.image.load(image_file)
     return pygame.transform.scale(image, size)
 
+def start_wave_message(creature, wave_number):
+    """Display the wave message at the beginning of the wave."""
+    print(f"Wave {wave_number}!!! {creature.capitalize()} Wave!!!")
+    wave_message = font.render(f"Wave {wave_number}: {creature.capitalize()} Wave!!!", True, BLACK)
+    screen.blit(wave_message, (SCREEN_WIDTH // 2 - 100, 20))
+    pygame.display.flip()
+    time.sleep(1)  # Simulate flashing the message by pausing for 1 second
+
 def spawn_critter_for_wave():
-    global critters_spawned
+    """Spawn critters for the current wave."""
+    global critters_spawned, wave_count
+    wave_count += 1
     critter_data = level_critters[wave_count % len(level_critters)]
+    creature_type = critter_data["type"]
+    
+    # Display the start of the wave
+    start_wave_message(creature_type.split(".")[0], wave_count)
+    
+    # Spawn critters
     for _ in range(critter_data["count"]):
         x = random.randint(0, SCREEN_WIDTH - 50)
         y = random.randint(0, SCREEN_HEIGHT // 2)
         speed = random.randint(2, 5)
         direction = random.choice([-1, 1])
-        critter = Critter(x, y, speed, direction, critter_data["type"], (50, 50))  # Set size dynamically
+        critter = Critter(x, y, speed, direction, creature_type, (50, 50))
         critter_group.add(critter)
         critters_spawned += 1
+
+        # Add the critter to the matrix
+        creatures_in_matrix.append(creature_type)
+        if len(creatures_in_matrix) >= matrix_size:
+            end_game()
 
 # Define Critter Class
 class Critter(pygame.sprite.Sprite):
@@ -80,9 +108,6 @@ class Critter(pygame.sprite.Sprite):
         if self.rect.right < 0 or self.rect.left > SCREEN_WIDTH:
             self.kill()
 
-    def reverse_direction(self):
-        self.direction *= -1
-
 # Define SonicWave Class
 class SonicWave(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -95,15 +120,9 @@ class SonicWave(pygame.sprite.Sprite):
         self.growth_speed = 5
 
     def update(self):
-        # Grow the sonic wave
         new_size = (self.rect.width + self.growth_speed, self.rect.height + self.growth_speed)
         self.image = pygame.transform.scale(self.original_image, new_size)
         self.rect = self.image.get_rect(center=self.rect.center)
-
-        # Debugging: print rect size
-        print(f"SonicWave rect: {self.rect}")
-
-        # Remove wave if it's too large
         if self.rect.width > self.max_size:
             self.kill()
 
@@ -130,6 +149,14 @@ def draw_score(score):
     score_text = font.render(f"Score: {score}", True, BLACK)
     screen.blit(score_text, (SCREEN_WIDTH - 150, 20))
 
+# End the game and show final statistics
+def end_game():
+    global running
+    print("Congratulations! You've completed the creature matrix!")
+    print(f"Total waves: {wave_count}")
+    print(f"Final score: {score}")
+    running = False
+
 # Initialize sprite groups
 toby_group = pygame.sprite.Group()
 sonic_wave_group = pygame.sprite.Group()
@@ -142,7 +169,6 @@ toby_group.add(toby)
 # Game Loop
 running = True
 while running:
-    # Handle events
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -158,9 +184,8 @@ while running:
     # Spawn new wave if enough time has passed
     current_time = pygame.time.get_ticks()
     if current_time - wave_timer > wave_delay:
-        if wave_count < current_level:  # Limit waves to the current level
+        if wave_count < current_level:
             spawn_critter_for_wave()
-            wave_count += 1
             wave_timer = current_time  # Reset the timer for the next wave
 
     # Update sprites
@@ -170,15 +195,9 @@ while running:
 
     # Check for collisions between sonic waves and critters
     for wave in sonic_wave_group:
-        # Debugging: print critters and wave rect info
-        for critter in critter_group:
-            print(f"Critter rect: {critter.rect}, SonicWave rect: {wave.rect}")
-        
-        critters_hit = pygame.sprite.spritecollide(wave, critter_group, False)  # False to not remove critters yet
+        critters_hit = pygame.sprite.spritecollide(wave, critter_group, False)
         for critter in critters_hit:
-            # Increase score based on the current wave
-            score += current_level  # 1 point per critter in wave 1, 2 points per critter in wave 2, etc.
-            print(f"Collision detected! Score: {score}")
+            score += current_level
             critter.kill()  # Remove critter after collision
 
     # Drawing
@@ -195,7 +214,7 @@ while running:
 
     # Level up if all waves are spawned and critters cleared
     if wave_count >= current_level and not critter_group:
-        current_level += 1  # Go to the next level
-        wave_count = 0  # Reset wave count for the new level
+        current_level += 1
+        wave_count = 0
 
 pygame.quit()
