@@ -55,7 +55,8 @@ current_level = 1
 wave_count = 0
 critters_spawned = 0
 wave_timer = pygame.time.get_ticks()  # Timer for controlling waves
-wave_delay = 2000  # 2-second delay between waves
+wave_delay = 3000  # 3-second delay between waves
+wave_complete_delay = 2000  # 2-second delay after wave completion
 score = 0  # Initial score
 creatures_seen = []  # Track which creatures have been introduced
 
@@ -70,43 +71,45 @@ def start_wave_message(creatures, wave_number):
     wave_message_render = font.render(wave_message, True, BLACK)
     screen.blit(wave_message_render, (SCREEN_WIDTH // 2 - 200, 20))
     pygame.display.flip()
-    time.sleep(1)  # Simulate flashing the message by pausing for 1 second
+    time.sleep(2)  # Simulate flashing the message by pausing for 2 seconds
 
 def spawn_critter_for_wave():
-    """Spawn critters for the current wave."""
+    """Spawn critters cumulatively up to the current wave."""
     global critters_spawned, wave_count
-    critter_data = level_critters[wave_count]
-    creature_type = critter_data["type"]
+    new_creatures = []
 
-    # Check if this creature type is new for the current wave
-    if creature_type not in creatures_seen:
-        creatures_seen.append(creature_type)  # Add to the list of seen creatures
+    # Spawn all creatures from the current and previous waves
+    for i in range(wave_count + 1):  # Cumulative wave logic
+        critter_data = level_critters[i]
+        creature_type = critter_data["type"]
 
-    # Spawn critters of this type
-    for _ in range(critter_data["count"]):
-        x = random.randint(0, SCREEN_WIDTH - 50)
-        y = random.randint(0, SCREEN_HEIGHT // 2)
-        speed = random.randint(2, 5)
-        direction = random.choice([-1, 1])
-        critter = Critter(x, y, speed, direction, creature_type, (50, 50))
-        critter_group.add(critter)
-        critters_spawned += 1
+        # Check if this creature type is new for this cumulative wave
+        if creature_type not in creatures_seen:
+            creatures_seen.append(creature_type)  # Add to the list of seen creatures
+            new_creatures.append(creature_type)  # Track new creatures introduced in this wave
 
-        # Add the critter to the matrix progressively and stop if the matrix is full
-        if len(creatures_in_matrix) < matrix_size:
-            creatures_in_matrix.append(creature_type)
-        else:
-            end_game()
+        # Spawn critters of this type
+        for _ in range(critter_data["count"]):
+            x = random.randint(0, SCREEN_WIDTH - 50)
+            y = random.randint(0, SCREEN_HEIGHT // 2)
+            speed = random.randint(2, 5)
+            direction = random.choice([-1, 1])
+            critter = Critter(x, y, speed, direction, creature_type, (50, 50))
+            critter_group.add(critter)
+            critters_spawned += 1
+
+            # Add the critter to the matrix progressively and stop if the matrix is full
+            if len(creatures_in_matrix) < matrix_size:
+                creatures_in_matrix.append(creature_type)
+            else:
+                end_game()
 
     # Display the wave message
-    start_wave_message([creature_type], wave_count + 1)
+    if new_creatures:
+        start_wave_message(new_creatures, wave_count + 1)
 
     # Increment the wave count
     wave_count += 1
-
-    # End game if all waves have been completed
-    if wave_count >= len(level_critters):
-        end_game()
 
 # Define Critter Class
 class Critter(pygame.sprite.Sprite):
@@ -182,6 +185,8 @@ toby_group.add(toby)
 
 # Game Loop
 running = True
+wave_completed = False
+
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -195,11 +200,16 @@ while running:
     keys = pygame.key.get_pressed()
     toby.move(keys)
 
-    # Spawn new wave if enough time has passed
+    # If all critters from the previous wave are cleared, wait before starting the next wave
+    if not critter_group and wave_completed:
+        pygame.time.delay(wave_complete_delay)  # Delay between waves
+        wave_completed = False
+
+    # Spawn new wave if enough time has passed and no critters remain
     current_time = pygame.time.get_ticks()
-    if current_time - wave_timer > wave_delay and wave_count < len(level_critters):
+    if current_time - wave_timer > wave_delay and not critter_group and wave_count < len(level_critters):
         spawn_critter_for_wave()
-        wave_timer = current_time  # Reset the timer for the next wave
+        wave_timer = pygame.time.get_ticks()  # Reset the timer for the next wave
 
     # Update sprites
     toby_group.update()
@@ -225,8 +235,12 @@ while running:
     pygame.display.flip()
     clock.tick(60)
 
-    # Level up if all waves are spawned and critters cleared
-    if wave_count >= len(level_critters) and not critter_group:
+    # Check if the wave is complete and wait for the next wave
+    if not critter_group and wave_count >= len(level_critters):
         end_game()
+
+    # Check if the wave is complete and wait for the next wave
+    if not critter_group and wave_count < len(level_critters):
+        wave_completed = True
 
 pygame.quit()
