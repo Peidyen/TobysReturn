@@ -14,7 +14,7 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 WHITE = (255, 255, 255)
 
 # Load Toby Image and Bark Sound
-toby_image = pygame.image.load("toby.png")
+toby_image = pygame.image.load("toby.gif")
 bark_sound = pygame.mixer.Sound('bark.wav')
 
 # Load and resize the worm image
