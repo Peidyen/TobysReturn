@@ -33,7 +33,7 @@ creature_images = [
 ]
 
 # Matrix size and tracking
-matrix_size = 100
+matrix_size = 3000
 creatures_in_matrix = []  # To track creatures added to the matrix
 
 # Define level configuration with critters
