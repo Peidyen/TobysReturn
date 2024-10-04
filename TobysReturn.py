@@ -33,7 +33,15 @@ level_critters = [
     {"type": "worm.png", "count": 10},
     {"type": "chick.png", "count": 10},
     {"type": "frog.png", "count": 10},
+    {"type": "turtle.png", "count": 10},
+    {"type": "rabbit.png", "count": 10},
+    {"type": "fox.png", "count": 10},
+    {"type": "owl.png", "count": 10},
+    {"type": "lion.png", "count": 10},
+    {"type": "elephant.png", "count": 10},
+    {"type": "fish.png", "count": 10}
 ]
+
 
 current_level = 1
 wave_count = 0
