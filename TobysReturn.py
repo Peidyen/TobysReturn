@@ -12,13 +12,14 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 # Colors
 WHITE = (255, 255, 255)
 
-# Load Toby Image and Bark Sound
+# Load Toby Image and resize it
 toby_image = pygame.image.load("toby.gif")
+toby_image = pygame.transform.scale(toby_image, (100, 100))  # Resize Toby to 100x100 pixels
 bark_sound = pygame.mixer.Sound('bark.wav')
 
 # Load and resize the worm image
 worm_image = pygame.image.load("worm.png")
-worm_image = pygame.transform.scale(worm_image, (50, 50))  # Adjust size to 50x50 pixels or whatever fits best
+worm_image = pygame.transform.scale(worm_image, (50, 50))  # Adjust size to 50x50 pixels
 
 # Clock for controlling frame rate
 clock = pygame.time.Clock()
@@ -52,15 +53,6 @@ def spawn_critter_for_wave():
         critter = Critter(x, y, speed, direction, critter_data["type"], (50, 50))  # Set size dynamically
         critter_group.add(critter)
         critters_spawned += 1
-
-# Get the image size to debug
-print(worm_image.get_size())  # This will print the size of the image after scaling
-
-def level_up():
-    global current_level, wave_count, critters_spawned
-    current_level += 1
-    wave_count = 0
-    critters_spawned = 0
 
 # Define Critter Class
 class Critter(pygame.sprite.Sprite):
@@ -99,7 +91,7 @@ class SonicWave(pygame.sprite.Sprite):
 class Toby(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        self.image = toby_image
+        self.image = toby_image  # Toby's resized image
         self.rect = self.image.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 100))
         self.speed = 5
 
