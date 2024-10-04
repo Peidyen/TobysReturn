@@ -5,7 +5,6 @@ import random
 pygame.init()
 
 # Screen dimensions
-# Change to larger dimensions
 SCREEN_WIDTH = 1280  # Increase width
 SCREEN_HEIGHT = 720  # Increase height (or higher for larger screens)
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -19,9 +18,7 @@ bark_sound = pygame.mixer.Sound('bark.wav')
 
 # Load and resize the worm image
 worm_image = pygame.image.load("worm.png")
-worm_image = pygame.transform.scale(worm_image, (5, 5))  # Adjust size to 50x50 pixels or whatever fits best
-
-
+worm_image = pygame.transform.scale(worm_image, (50, 50))  # Adjust size to 50x50 pixels or whatever fits best
 
 # Clock for controlling frame rate
 clock = pygame.time.Clock()
@@ -40,6 +37,10 @@ critters_spawned = 0
 wave_timer = pygame.time.get_ticks()  # Timer for controlling waves
 wave_delay = 2000  # 2-second delay between waves
 
+def load_and_resize_image(image_file, size):
+    image = pygame.image.load(image_file)
+    return pygame.transform.scale(image, size)
+
 def spawn_critter_for_wave():
     global critters_spawned
     critter_data = level_critters[wave_count % len(level_critters)]
@@ -48,15 +49,12 @@ def spawn_critter_for_wave():
         y = random.randint(0, SCREEN_HEIGHT // 2)
         speed = random.randint(2, 5)
         direction = random.choice([-1, 1])
-        critter = Critter(x, y, speed, direction, critter_data["type"])
+        critter = Critter(x, y, speed, direction, critter_data["type"], (50, 50))  # Set size dynamically
         critter_group.add(critter)
         critters_spawned += 1
 
-
 # Get the image size to debug
 print(worm_image.get_size())  # This will print the size of the image after scaling
-
-
 
 def level_up():
     global current_level, wave_count, critters_spawned
@@ -66,9 +64,9 @@ def level_up():
 
 # Define Critter Class
 class Critter(pygame.sprite.Sprite):
-    def __init__(self, x, y, speed, direction, image_file):
+    def __init__(self, x, y, speed, direction, image_file, size):
         super().__init__()
-        self.image = pygame.image.load(image_file)
+        self.image = load_and_resize_image(image_file, size)
         self.rect = self.image.get_rect(topleft=(x, y))
         self.speed = speed
         self.direction = direction
@@ -168,7 +166,7 @@ while running:
     pygame.display.flip()
     clock.tick(60)
 
-    # Level uap if all waves are spawned and critters cleared
+    # Level up if all waves are spawned and critters cleared
     if wave_count >= current_level and not critter_group:
         level_up()
 
