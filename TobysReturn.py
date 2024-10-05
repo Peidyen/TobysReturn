@@ -1,6 +1,25 @@
+import os
+import sys
 import pygame
 import random
 import time
+
+# Automatically detect the environment (server or desktop)
+IS_WEB = os.getenv("IS_WEB", "False").lower() == "true"
+
+# Function to get the correct path for assets based on the environment
+def resource_path(relative_path):
+    if IS_WEB:
+        # Server or backend environment: Serve static files via URL
+        return f"/static/{relative_path}"
+    else:
+        try:
+            # PyInstaller bundled environment
+            base_path = sys._MEIPASS
+        except AttributeError:
+            # Regular script environment (e.g., local development)
+            base_path = os.path.abspath(".")
+        return os.path.join(base_path, relative_path)
 
 # Initialize Pygame
 pygame.init()
@@ -17,10 +36,10 @@ BLACK = (0, 0, 0)
 # Font for displaying the score and wave messages
 font = pygame.font.SysFont(None, 36)
 
-# Load Toby Image and resize it
-toby_image = pygame.image.load("toby.gif")
+# Load Toby Image and resize it using resource_path
+toby_image = pygame.image.load(resource_path("toby.gif"))
 toby_image = pygame.transform.scale(toby_image, (100, 100))  # Resize Toby
-bark_sound = pygame.mixer.Sound('bark.wav')
+bark_sound = pygame.mixer.Sound(resource_path('bark.wav'))
 
 # Clock for controlling frame rate
 clock = pygame.time.Clock()
@@ -61,7 +80,7 @@ score = 0  # Initial score
 creatures_seen = []  # Track which creatures have been introduced
 
 def load_and_resize_image(image_file, size):
-    image = pygame.image.load(image_file)
+    image = pygame.image.load(resource_path(image_file))
     return pygame.transform.scale(image, size)
 
 def start_wave_message(creatures, wave_number):
