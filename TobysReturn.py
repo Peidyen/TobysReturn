@@ -13,9 +13,11 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 # Colors
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
+RED = (255, 0, 0)
 
 # Font for displaying the score and wave messages
 font = pygame.font.SysFont(None, 36)
+large_font = pygame.font.SysFont(None, 72)
 
 # Load Toby Image and resize it
 toby_image = pygame.image.load("toby.gif")
@@ -58,6 +60,7 @@ wave_timer = pygame.time.get_ticks()  # Timer for controlling waves
 wave_delay = 3000  # 3-second delay between waves
 wave_complete_delay = 2000  # 2-second delay after wave completion
 score = 0  # Initial score
+high_score = 0  # Initial high score
 creatures_seen = []  # Track which creatures have been introduced
 
 def load_and_resize_image(image_file, size):
@@ -67,7 +70,6 @@ def load_and_resize_image(image_file, size):
 def start_wave_message(creatures, wave_number):
     """Display the wave message at the beginning of the wave."""
     wave_message = f"Wave {wave_number}: " + " and ".join([creature.split(".")[0].capitalize() for creature in creatures]) + " Wave!!!"
-    print(wave_message)  # Debug print
     wave_message_render = font.render(wave_message, True, BLACK)
     screen.blit(wave_message_render, (SCREEN_WIDTH // 2 - 200, 20))
     pygame.display.flip()
@@ -168,11 +170,32 @@ def draw_score(score):
 
 # End the game and show final statistics
 def end_game():
-    global running
-    print("Congratulations! You've completed the creature matrix!")
-    print(f"Total waves: {wave_count}")
-    print(f"Final score: {score}")
-    running = False
+    global running, high_score
+    if score > high_score:
+        high_score = score  # Update the high score if the current score is higher
+    show_game_over_screen()
+
+def show_game_over_screen():
+    """Display the Game Over screen with the score and high score."""
+    screen.fill(WHITE)
+
+    # Display "Game Over" text
+    game_over_text = large_font.render("GAME OVER", True, RED)
+    screen.blit(game_over_text, (SCREEN_WIDTH // 2 - 200, SCREEN_HEIGHT // 2 - 100))
+
+    # Display the final score
+    score_text = font.render(f"Final Score: {score}", True, BLACK)
+    screen.blit(score_text, (SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2))
+
+    # Display the high score
+    high_score_text = font.render(f"High Score: {high_score}", True, BLACK)
+    screen.blit(high_score_text, (SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2 + 50))
+
+    pygame.display.flip()
+    time.sleep(3)  # Pause for 3 seconds before closing the game
+
+    pygame.quit()  # Exit the game
+    exit()
 
 # Initialize sprite groups
 toby_group = pygame.sprite.Group()
@@ -239,7 +262,6 @@ while running:
     if not critter_group and wave_count >= len(level_critters):
         end_game()
 
-    # Check if the wave is complete and wait for the next wave
     if not critter_group and wave_count < len(level_critters):
         wave_completed = True
 
