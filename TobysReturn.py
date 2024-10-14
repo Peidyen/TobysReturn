@@ -176,21 +176,27 @@ def end_game():
     show_game_over_screen()
 
 def show_game_over_screen():
-    """Display the Game Over screen with the score and high score."""
-    screen.fill(WHITE)
+    """Overlay the Game Over screen with the score and high score over the game screen."""
+    # Create a semi-transparent overlay for the "Game Over" message
+    overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+    overlay.fill((255, 255, 255, 180))  # White with alpha for transparency
 
     # Display "Game Over" text
     game_over_text = large_font.render("GAME OVER", True, RED)
-    screen.blit(game_over_text, (SCREEN_WIDTH // 2 - 200, SCREEN_HEIGHT // 2 - 100))
+    overlay.blit(game_over_text, (SCREEN_WIDTH // 2 - 200, SCREEN_HEIGHT // 2 - 100))
 
     # Display the final score
     score_text = font.render(f"Final Score: {score}", True, BLACK)
-    screen.blit(score_text, (SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2))
+    overlay.blit(score_text, (SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2))
 
     # Display the high score
     high_score_text = font.render(f"High Score: {high_score}", True, BLACK)
-    screen.blit(high_score_text, (SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2 + 50))
+    overlay.blit(high_score_text, (SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2 + 50))
 
+    # Blit the overlay on top of the current game screen
+    screen.blit(overlay, (0, 0))
+
+    # Update the display to show the overlaid game over screen
     pygame.display.flip()
     time.sleep(3)  # Pause for 3 seconds before closing the game
 
