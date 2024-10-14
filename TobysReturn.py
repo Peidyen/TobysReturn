@@ -14,6 +14,7 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
+GREEN = (0, 255, 0)
 
 # Font for displaying the score and wave messages
 font = pygame.font.SysFont(None, 36)
@@ -62,6 +63,7 @@ wave_complete_delay = 2000  # 2-second delay after wave completion
 score = 0  # Initial score
 high_score = 0  # Initial high score
 creatures_seen = []  # Track which creatures have been introduced
+game_active = True  # Variable to track if the game is running
 
 def load_and_resize_image(image_file, size):
     image = pygame.image.load(image_file)
@@ -177,6 +179,9 @@ def end_game():
 
 def show_game_over_screen():
     """Overlay the Game Over screen with the score and high score over the game screen."""
+    global game_active
+    game_active = False
+
     # Create a semi-transparent overlay for the "Game Over" message
     overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
     overlay.fill((255, 255, 255, 180))  # White with alpha for transparency
@@ -193,15 +198,52 @@ def show_game_over_screen():
     high_score_text = font.render(f"High Score: {high_score}", True, BLACK)
     overlay.blit(high_score_text, (SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2 + 50))
 
+    # Ask if the player wants to play again
+    play_again_text = font.render("Do you want to play again? Press Y for Yes or N for No.", True, GREEN)
+    overlay.blit(play_again_text, (SCREEN_WIDTH // 2 - 300, SCREEN_HEIGHT // 2 + 150))
+
     # Blit the overlay on top of the current game screen
     screen.blit(overlay, (0, 0))
 
     # Update the display to show the overlaid game over screen
     pygame.display.flip()
-    time.sleep(3)  # Pause for 3 seconds before closing the game
 
-    pygame.quit()  # Exit the game
-    exit()
+    # Wait for player's input
+    waiting_for_input = True
+    while waiting_for_input:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_y:  # Player chose to play again
+                    reset_game()
+                    waiting_for_input = False
+                elif event.key == pygame.K_n:  # Player chose to quit
+                    pygame.quit()
+                    exit()
+
+def reset_game():
+    """Reset all game variables to restart the game."""
+    global score, wave_count, critters_spawned, wave_timer, creatures_in_matrix, creatures_seen, game_active
+
+    # Reset variables
+    score = 0
+    wave_count = 0
+    critters_spawned = 0
+    wave_timer = pygame.time.get_ticks()
+    creatures_in_matrix = []
+    creatures_seen = []
+    game_active = True
+
+    # Clear sprite groups
+    toby_group.empty()
+    critter_group.empty()
+    sonic_wave_group.empty()
+
+    # Add Toby back to the game
+    toby = Toby()
+    toby_group.add(toby)
 
 # Initialize sprite groups
 toby_group = pygame.sprite.Group()
@@ -217,58 +259,59 @@ running = True
 wave_completed = False
 
 while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_SPACE:
-                bark_sound.play()
-                wave = SonicWave(toby.rect.centerx, toby.rect.centery)
-                sonic_wave_group.add(wave)
+    if game_active:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    bark_sound.play()
+                    wave = SonicWave(toby.rect.centerx, toby.rect.centery)
+                    sonic_wave_group.add(wave)
 
-    keys = pygame.key.get_pressed()
-    toby.move(keys)
+        keys = pygame.key.get_pressed()
+        toby.move(keys)
 
-    # If all critters from the previous wave are cleared, wait before starting the next wave
-    if not critter_group and wave_completed:
-        pygame.time.delay(wave_complete_delay)  # Delay between waves
-        wave_completed = False
+        # If all critters from the previous wave are cleared, wait before starting the next wave
+        if not critter_group and wave_completed:
+            pygame.time.delay(wave_complete_delay)  # Delay between waves
+            wave_completed = False
 
-    # Spawn new wave if enough time has passed and no critters remain
-    current_time = pygame.time.get_ticks()
-    if current_time - wave_timer > wave_delay and not critter_group and wave_count < len(level_critters):
-        spawn_critter_for_wave()
-        wave_timer = pygame.time.get_ticks()  # Reset the timer for the next wave
+        # Spawn new wave if enough time has passed and no critters remain
+        current_time = pygame.time.get_ticks()
+        if current_time - wave_timer > wave_delay and not critter_group and wave_count < len(level_critters):
+            spawn_critter_for_wave()
+            wave_timer = pygame.time.get_ticks()  # Reset the timer for the next wave
 
-    # Update sprites
-    toby_group.update()
-    sonic_wave_group.update()
-    critter_group.update()
+        # Update sprites
+        toby_group.update()
+        sonic_wave_group.update()
+        critter_group.update()
 
-    # Check for collisions between sonic waves and critters
-    for wave in sonic_wave_group:
-        critters_hit = pygame.sprite.spritecollide(wave, critter_group, False)
-        for critter in critters_hit:
-            score += current_level
-            critter.kill()  # Remove critter after collision
+        # Check for collisions between sonic waves and critters
+        for wave in sonic_wave_group:
+            critters_hit = pygame.sprite.spritecollide(wave, critter_group, False)
+            for critter in critters_hit:
+                score += current_level
+                critter.kill()  # Remove critter after collision
 
-    # Drawing
-    screen.fill(WHITE)
-    toby_group.draw(screen)
-    sonic_wave_group.draw(screen)
-    critter_group.draw(screen)
+        # Drawing
+        screen.fill(WHITE)
+        toby_group.draw(screen)
+        sonic_wave_group.draw(screen)
+        critter_group.draw(screen)
 
-    # Draw the score
-    draw_score(score)
+        # Draw the score
+        draw_score(score)
 
-    pygame.display.flip()
-    clock.tick(60)
+        pygame.display.flip()
+        clock.tick(60)
 
-    # Check if the wave is complete and wait for the next wave
-    if not critter_group and wave_count >= len(level_critters):
-        end_game()
+        # Check if the wave is complete and wait for the next wave
+        if not critter_group and wave_count >= len(level_critters):
+            end_game()
 
-    if not critter_group and wave_count < len(level_critters):
-        wave_completed = True
+        if not critter_group and wave_count < len(level_critters):
+            wave_completed = True
 
 pygame.quit()
