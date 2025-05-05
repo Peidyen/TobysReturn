@@ -19,6 +19,7 @@ GREEN = (0, 255, 0)
 # Font for displaying the score and wave messages
 font = pygame.font.SysFont(None, 36)
 large_font = pygame.font.SysFont(None, 72)
+title_font = pygame.font.SysFont(None, 100)
 
 # Load Toby Image and resize it
 toby_image = pygame.image.load("toby.gif")
@@ -68,6 +69,30 @@ game_active = True  # Variable to track if the game is running
 def load_and_resize_image(image_file, size):
     image = pygame.image.load(image_file)
     return pygame.transform.scale(image, size)
+
+def splash_screen():
+    """Display the splash screen with the game title."""
+    screen.fill(WHITE)
+
+    # Display game title
+    title_text = title_font.render("Toby's Crazy Critter Challenge", True, BLACK)
+    screen.blit(title_text, (SCREEN_WIDTH // 2 - 550, SCREEN_HEIGHT // 2 - 100))
+
+    # Display instruction to start
+    instruction_text = font.render("Press any key to start!", True, GREEN)
+    screen.blit(instruction_text, (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 + 50))
+
+    pygame.display.flip()
+
+    # Wait for the player to press any key
+    waiting = True
+    while waiting:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            if event.type == pygame.KEYDOWN:
+                waiting = False
 
 def start_wave_message(creatures, wave_number):
     """Display the wave message at the beginning of the wave."""
@@ -253,6 +278,9 @@ critter_group = pygame.sprite.Group()
 # Create Toby
 toby = Toby()
 toby_group.add(toby)
+
+# Splash Screen
+splash_screen()
 
 # Game Loop
 running = True
